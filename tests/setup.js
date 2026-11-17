@@ -1,7 +1,9 @@
 const store = {};
 const listeners = {};
 const shared = [];
-const fakeView = { innerHTML: '', addEventListener: (t, f) => (listeners[t] = f), querySelector: () => null };
+const fakeQuery = {};
+const elements = {};
+const fakeView = { innerHTML: '', addEventListener: (t, f) => (listeners[t] = f), querySelector: sel => fakeQuery[sel] ?? null };
 
 globalThis.window = globalThis;
 globalThis.innerWidth = 390;
@@ -9,7 +11,7 @@ globalThis.location = { hash: '' };
 globalThis.addEventListener = () => {};
 globalThis.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => (store[k] = v) };
 globalThis.document = {
-  getElementById: () => fakeView,
+  getElementById: id => (id === 'view' ? fakeView : (elements[id] ||= { innerHTML: '' })),
   documentElement: { style: { setProperty() {} } },
   querySelectorAll: () => [],
   addEventListener() {},
@@ -22,5 +24,7 @@ globalThis.File = class {
     this.type = opts.type;
   }
 };
+globalThis.setInterval = () => 0;
+globalThis.setTimeout = () => 0;
 globalThis.prompt = () => 'Renamed';
 globalThis.confirm = () => true;
