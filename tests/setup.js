@@ -3,6 +3,7 @@ const listeners = {};
 const shared = [];
 const fakeQuery = {};
 const elements = {};
+const fakeAll = {};
 const fakeView = { innerHTML: '', addEventListener: (t, f) => (listeners[t] = f), querySelector: sel => fakeQuery[sel] ?? null };
 
 globalThis.window = globalThis;
@@ -13,7 +14,7 @@ globalThis.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => (
 globalThis.document = {
   getElementById: id => (id === 'view' ? fakeView : (elements[id] ||= { innerHTML: '' })),
   documentElement: { style: { setProperty() {} } },
-  querySelectorAll: () => [],
+  querySelectorAll: sel => fakeAll[sel] ?? [],
   addEventListener() {},
 };
 globalThis.navigator = { canShare: () => true, share: data => shared.push(data) };

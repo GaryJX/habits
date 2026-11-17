@@ -8,6 +8,7 @@ function test(name, fn) {
   for (const k in store) delete store[k];
   for (const k in fakeQuery) delete fakeQuery[k];
   for (const k in elements) delete elements[k];
+  for (const k in fakeAll) delete fakeAll[k];
   try {
     fn();
     results.push(`ok   ${name}`);
@@ -33,6 +34,24 @@ function add(kind, name, created = todayKey()) {
 
 function markDays(item, offsets) {
   for (const n of offsets) toggle(item.id, day(n));
+}
+
+function fakeEl() {
+  const classes = new Set();
+  return {
+    textContent: '',
+    style: {},
+    classes,
+    classList: { toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)) },
+  };
+}
+
+function fakeTimer() {
+  const timer = fakeEl();
+  const bar = fakeEl();
+  fakeAll['[data-fast-timer]'] = [timer];
+  fakeAll['[data-fast-bar]'] = [bar];
+  return { timer, bar };
 }
 
 function fakeChart() {
@@ -557,6 +576,31 @@ test('click_deleteWeight_removesThatEntry', () => {
   setWeight(todayKey(), 180);
   click({ action: 'delete-weight', k: day(-1) });
   eq(state.weights, { [todayKey()]: 180 });
+});
+
+test('tick_fastUnderGoal_updatesTimerAndBar', () => {
+  state.fasts.push({ start: Date.now() - 4 * HOUR, goal: 16 });
+  const { timer, bar } = fakeTimer();
+  tick();
+  eq(timer.textContent.startsWith('4:00:'), true);
+  eq(timer.classes.has('met'), false);
+  eq(Math.round(parseFloat(bar.style.width)), 25);
+});
+
+test('tick_fastPastGoal_marksMetAndCapsBar', () => {
+  state.fasts.push({ start: Date.now() - 18 * HOUR, goal: 16 });
+  const { timer, bar } = fakeTimer();
+  tick();
+  eq(timer.textContent.startsWith('18:00:'), true);
+  eq(timer.classes.has('met'), true);
+  eq(bar.style.width, '100%');
+});
+
+test('tick_notFasting_leavesElementsUntouched', () => {
+  state.fasts.push({ start: 0, end: HOUR, goal: 16 });
+  const { timer, bar } = fakeTimer();
+  tick();
+  eq([timer.textContent, bar.style.width], ['', undefined]);
 });
 
 const summary = `${results.join('\n')}\n\n${results.length - failures} passed, ${failures} failed`;
